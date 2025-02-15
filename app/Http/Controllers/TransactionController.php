@@ -6,6 +6,7 @@ use App\Models\Cart;
 use App\Models\Transaction;
 use App\Services\Fonnte;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Midtrans\Snap;
 
@@ -26,11 +27,34 @@ class TransactionController extends Controller
 
     public function handleNotification(Request $request)
     {
+
         $payload = $request->all();
+        Log::info('incoming-midtrans', [
+            'payload' => $payload
+        ]);
+
         $transaction = $payload['transaction_status'];
         $orderId = $payload['order_id'];
+        $statusCode = $payload['status_code'];
+        $grossAmount = $payload['gross_amount'];
 
+        $reqSignature = $payload['signature_key'];
+
+        $signature = hash('sha512', $orderId . $statusCode . $grossAmount . config('midtrans.server_key'));
+
+        if ($signature != $reqSignature) {
+            return response()->json([
+                'message' => 'Invalid signature'
+            ], 401);
+        }
         $myTransaction = Transaction::where('invoice', $orderId)->first();
+
+        if (empty($myTransaction)) {
+            return response()->json([
+                'message' => 'Transaction not found'
+            ], 404);
+        }
+
         if ($transaction == 'capture' || $transaction == 'settlement') {
             // Pembayaran sukses, update database
             Transaction::where('invoice', $orderId)->update(["status" => "SUCCESS"]);

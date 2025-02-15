@@ -34,6 +34,7 @@ Route::get('/dashboard', function () {
     return redirect('/');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
+
 Route::middleware('auth')->group(function () {
     Route::get('/checkout', [CheckOutController::class, 'index']);
 
@@ -44,7 +45,6 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/transactions', [TransactionController::class, 'index']);
     Route::post('/transactions', [TransactionController::class, 'store']);
-    Route::post('/transactions/handle-notification', [TransactionController::class, 'handleNotification']);
 
     Route::get('/order-confirmation', OrderConfirmationController::class);
 
